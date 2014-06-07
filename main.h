@@ -1,5 +1,3 @@
-
-
 // max line buffer
 #define MAX_BUFFER 1024
  // max # args                        
@@ -17,13 +15,22 @@ struct pcb {
 typedef struct pcb Pcb;
 typedef Pcb * PcbPtr;
 
+struct queue {
+    char * name[MAX_BUFFER];
+   	PcbPtr first;
+	PcbPtr last;
+	int length;
+};
+typedef struct queue Queue;
+typedef Queue * QueuePtr;
+
 /*
 - queue process (or join queues) at end of queue
 - enqueues at "tail" of queue list. 
 returns:
   (new) head of queue
 */
-PcbPtr enqPcb (PcbPtr process);
+PcbPtr enqPcb (QueuePtr queue, PcbPtr process);
 
 /*
 - dequeue process - take Pcb from "head" of queue.
@@ -32,7 +39,7 @@ returns:
   NULL if queue was empty
   & sets new head of Q pointer in adrs at 1st arg
 */
-PcbPtr deqPcb ();
+PcbPtr deqPcb (QueuePtr queue);
 
 /*
 - create inactive Pcb.
@@ -59,5 +66,4 @@ PcbPtr terminatePcb(PcbPtr process);
 PcbPtr startPcb(PcbPtr process);
 
 
-//print all the PCB's with their status.
-void print_pcbs();
+QueuePtr createQueue(void);

@@ -2,20 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <signal.h>
 
 #include "main.h"
 
-
-
-PcbPtr first_elem = NULL;
-PcbPtr last_elem = NULL;
-int dispatch_timer;
-
 int main()
 {
     // 1. Initialize dispatcher queue;
+    QueuePtr dispatch = createQueue();
+    QueuePtr rr0 = createQueue();
+    QueuePtr rr1 = createQueue();
+    QueuePtr rr2 = createQueue();
+
+
+    int dispatch_timer = 0;
+    
     // 2. Fill dispatcher queue from dispatch list file;
     char buf[MAX_BUFFER];
 
@@ -50,18 +53,28 @@ int main()
             new_pcb->pid = 0;
 
             // printf("Created: %d\n", new_pcb->arrivaltime);
-            enqPcb(new_pcb);
+            enqPcb(dispatch, new_pcb);
         }
     }
 
     PcbPtr current_process = NULL;
-    
-    print_pcbs();
+
     while (1)
-    {
-        if (current_process == NULL && first_elem == NULL)
+    {   
+        if (current_process != NULL)
+        {
+            printf("%d [%d]: %d\n", current_process->arrivaltime, current_process->pid, current_process->remainingcputime);
+        }
+
+        if (current_process == NULL && dispatch->first == NULL && rr0->first == NULL)
         {
             exit(0);
+        }
+
+        if (dispatch->first != NULL && dispatch->first->arrivaltime <= dispatch_timer)
+        {
+
+            enqPcb(rr0, deqPcb(dispatch));
         }
 
         if (current_process != NULL)
@@ -70,44 +83,36 @@ int main()
             if (current_process->remainingcputime <= 0)
             {
                 terminatePcb(current_process);
-                // printf("terminated %d [%d]\n", current_process->arrivaltime, current_process->pid);
                 current_process = NULL;
                 free(current_process);
             }
+            else {
+                kill(current_process->pid, SIGTSTP);
+                enqPcb(rr0, current_process);
+                current_process = NULL;
+
+            }
         }
-        if (current_process == NULL && first_elem != NULL)
+        if (current_process == NULL && rr0->first != NULL)
         {
-            if (first_elem->arrivaltime <= dispatch_timer)
+            current_process = deqPcb(rr0);
+
+            if (current_process->pid != 0)
             {
-                current_process = deqPcb();
+                kill(current_process->pid, SIGCONT);
+            } 
+            else
+            {
                 startPcb(current_process);
-                // printf("started %d [%d]\n", current_process->arrivaltime, current_process->pid);
             }
         }
         sleep(1);
-        print_pcbs();
-        if (current_process != NULL)
-        {
-            printf("%8d  | %8d  | %8d\n", current_process->arrivaltime, current_process->remainingcputime, current_process->pid);
-        }
         dispatch_timer++;
 
     }
     return 0;
 }
 
-
-void print_pcbs()
-{
-    printf("\n\n\n\n\n\n\n");
-    printf("%8s  | %8s  | %8s\n", "arrival", "cpu", "pid");
-    PcbPtr x = first_elem;
-    while (x != NULL)
-    {
-        printf("%8d  | %8d  | %8d\n", x->arrivaltime, x->remainingcputime, x->pid);
-        x = x->next;
-    }
-}
 
 
 PcbPtr startPcb(PcbPtr process)
@@ -140,32 +145,37 @@ PcbPtr createnullPcb(void)
     return (PcbPtr) malloc(sizeof(Pcb));
 }
 
-PcbPtr enqPcb (PcbPtr process)
+PcbPtr enqPcb (QueuePtr queue, PcbPtr process)
 {
     if (process == NULL)
         return NULL;
 
     process->next = NULL;
-    if (first_elem == NULL)
+    if (queue->first == NULL)
     {
-        first_elem = process;
-        last_elem = process;
+        queue->first = process;
+        queue->last = process;
     }
     else
     {
-        last_elem->next = process;
-        last_elem = process;
+        queue->last->next = process;
+        queue->last = process;
     }
-    return first_elem;
+    return queue->first;
 }
 
-PcbPtr deqPcb ()
+PcbPtr deqPcb (QueuePtr queue)
 {
-    PcbPtr e = first_elem;
+    PcbPtr e = queue->first;
     if (e != NULL)
     {
-        first_elem = e->next;
+        queue->first = e->next;
     }
     return e;
 
+}
+
+QueuePtr createQueue(void)
+{
+    return (QueuePtr) malloc(sizeof(Queue));
 }
