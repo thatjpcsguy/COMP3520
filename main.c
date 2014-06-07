@@ -8,13 +8,17 @@
 
 #include "main.h"
 
+#define NUM_RR 3
+
 int main()
 {
     // 1. Initialize dispatcher queue;
     QueuePtr dispatch = createQueue();
-    QueuePtr rr0 = createQueue();
-    QueuePtr rr1 = createQueue();
-    QueuePtr rr2 = createQueue();
+
+    QueuePtr rr[NUM_RR];
+
+    for (int i = 0; i < NUM_RR; i++)
+        rr[i] = createQueue();
 
 
     int dispatch_timer = 0;
@@ -51,8 +55,11 @@ int main()
             new_pcb->args[1] = NULL;
             new_pcb->next = NULL;
             new_pcb->pid = 0;
+            new_pcb->priority = atoi(args[1]);
 
-            // printf("Created: %d\n", new_pcb->arrivaltime);
+
+
+            printf("Created: %d %d\n", new_pcb->arrivaltime, new_pcb->priority);
             enqPcb(dispatch, new_pcb);
         }
     }
@@ -63,18 +70,18 @@ int main()
     {   
         if (current_process != NULL)
         {
-            printf("%d [%d]: %d\n", current_process->arrivaltime, current_process->pid, current_process->remainingcputime);
+            printf("%d [%d]: %d (%d)\n", current_process->arrivaltime, current_process->pid, current_process->remainingcputime, current_process->priority);
         }
 
-        if (current_process == NULL && dispatch->first == NULL && rr0->first == NULL)
+        if (current_process == NULL && dispatch->first == NULL && rr[0]->first == NULL)
         {
             exit(0);
         }
 
         if (dispatch->first != NULL && dispatch->first->arrivaltime <= dispatch_timer)
         {
-
-            enqPcb(rr0, deqPcb(dispatch));
+            PcbPtr foo = deqPcb(dispatch);
+            enqPcb(rr[get_priority(foo->priority)], foo);
         }
 
         if (current_process != NULL)
@@ -86,16 +93,18 @@ int main()
                 current_process = NULL;
                 free(current_process);
             }
-            else {
-                kill(current_process->pid, SIGTSTP);
-                enqPcb(rr0, current_process);
-                current_process = NULL;
+            else if (process_in_queues(rr) == 1) {
+                if (current_process->priority > 1)
+                    current_process->priority--;
 
+                kill(current_process->pid, SIGTSTP);
+                enqPcb(rr[get_priority(current_process->priority)], current_process);
+                current_process = NULL;
             }
         }
-        if (current_process == NULL && rr0->first != NULL)
+        if (current_process == NULL && process_in_queues(rr))
         {
-            current_process = deqPcb(rr0);
+            current_process = deqPcb(rr[highest_priority_process(rr)]);
 
             if (current_process->pid != 0)
             {
@@ -113,6 +122,35 @@ int main()
     return 0;
 }
 
+
+int get_priority(int x)
+{
+    return (NUM_RR - x);
+}
+
+int process_in_queues(QueuePtr * x)
+{
+    for (int i = 0; i < NUM_RR; i++)
+    {
+        if (x[i]->first != NULL)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int highest_priority_process(QueuePtr * x)
+{
+    for (int i = 0; i < NUM_RR; i++)
+    {
+        if (x[i]->first != NULL)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
 
 
 PcbPtr startPcb(PcbPtr process)

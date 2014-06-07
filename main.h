@@ -10,6 +10,7 @@ struct pcb {
     char * args[MAX_ARGS];  // program name and args
     int arrivaltime;
     int remainingcputime;
+    int priority;
     struct pcb * next;     // links for Pcb handlers
 };
 typedef struct pcb Pcb;
@@ -23,6 +24,17 @@ struct queue {
 };
 typedef struct queue Queue;
 typedef Queue * QueuePtr;
+
+
+struct mab {
+    int offset;
+    int size;
+    int allocated;
+    struct mab * next;
+    struct mab * prev;
+};
+typedef struct mab Mab;
+typedef Mab * MabPtr;
 
 /*
 - queue process (or join queues) at end of queue
@@ -67,3 +79,7 @@ PcbPtr startPcb(PcbPtr process);
 
 
 QueuePtr createQueue(void);
+int get_priority(int x);
+int highest_priority_process(QueuePtr * x);
+int process_in_queues(QueuePtr * x);
+
