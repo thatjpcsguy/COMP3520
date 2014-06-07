@@ -49,7 +49,7 @@ int main()
             new_pcb->next = NULL;
             new_pcb->pid = 0;
 
-            printf("Created: %d\n", new_pcb->arrivaltime);
+            // printf("Created: %d\n", new_pcb->arrivaltime);
             enqPcb(new_pcb);
         }
     }
@@ -61,18 +61,16 @@ int main()
     {
         if (current_process == NULL && first_elem == NULL)
         {
-            printf("Fin!\n");
             exit(0);
         }
 
-        printf("While Loop!\n");
         if (current_process != NULL)
         {
             current_process->remainingcputime --;
             if (current_process->remainingcputime <= 0)
             {
                 terminatePcb(current_process);
-                printf("terminated %d [%d]\n", current_process->arrivaltime, current_process->pid);
+                // printf("terminated %d [%d]\n", current_process->arrivaltime, current_process->pid);
                 current_process = NULL;
                 free(current_process);
             }
@@ -83,12 +81,17 @@ int main()
             {
                 current_process = deqPcb();
                 startPcb(current_process);
-                printf("started %d [%d]\n", current_process->arrivaltime, current_process->pid);
+                // printf("started %d [%d]\n", current_process->arrivaltime, current_process->pid);
             }
         }
         sleep(1);
         print_pcbs();
+        if (current_process != NULL)
+        {
+            printf("%8d  | %8d  | %8d\n", current_process->arrivaltime, current_process->remainingcputime, current_process->pid);
+        }
         dispatch_timer++;
+
     }
     return 0;
 }
@@ -101,7 +104,7 @@ void print_pcbs()
     PcbPtr x = first_elem;
     while (x != NULL)
     {
-        printf("%8s  | %8s  | %8s\n", x->arrivaltime, x->remainingcputime, x->pid);
+        printf("%8d  | %8d  | %8d\n", x->arrivaltime, x->remainingcputime, x->pid);
         x = x->next;
     }
 }
