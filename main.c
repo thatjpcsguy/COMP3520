@@ -172,6 +172,7 @@ PcbPtr terminatePcb(PcbPtr process)
 {
     if (kill(process->pid, SIGINT))
     {
+        printf("Terminated: %d [%d]\n", process->arrivaltime, process->pid);
         return NULL;
     }
     return process;
@@ -216,4 +217,29 @@ PcbPtr deqPcb (QueuePtr queue)
 QueuePtr createQueue(void)
 {
     return (QueuePtr) malloc(sizeof(Queue));
+}
+
+MabPtr memChk(MabPtr m, int size)
+{
+
+}
+
+MabPtr memAlloc(MabPtr m, int size)
+{
+
+}
+
+MabPtr memFree(MabPtr m)
+{
+
+}
+ 
+MabPtr memMerge(MabPtr m)
+{
+
+}
+
+MabPtr memSplit(MabPtr m, int size)
+{
+
 }

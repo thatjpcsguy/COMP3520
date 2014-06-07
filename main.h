@@ -83,3 +83,11 @@ int get_priority(int x);
 int highest_priority_process(QueuePtr * x);
 int process_in_queues(QueuePtr * x);
 
+
+MabPtr memChk(MabPtr m, int size);   // check if memory available
+MabPtr memAlloc(MabPtr m, int size); // allocate memory block
+MabPtr memFree(MabPtr m);            // free memory block
+ 
+MabPtr memMerge(MabPtr m);           // merge two memory blocks
+MabPtr memSplit(MabPtr m, int size); // split a memory block
+
