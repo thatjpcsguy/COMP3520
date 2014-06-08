@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
             new_pcb->pid = 0;
             new_pcb->priority = atoi(args[1]);
 
-            printf("Created: %d %d\n", new_pcb->arrivaltime, new_pcb->priority);
+            printf("Created: arr: %d prio: %d cpu: %d\n", new_pcb->arrivaltime, new_pcb->priority, new_pcb->remainingcputime);
 
             //add to the dispatch queue
             enqPcb(dispatch, new_pcb);
