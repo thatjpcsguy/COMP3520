@@ -1,44 +1,49 @@
 // max line buffer
 #define MAX_BUFFER 1024
- // max # args                        
+// max # args
 #define MAX_ARGS 64
-// token sparators                       
-#define SEPARATORS " \t\n,"  
+// token sparators
+#define SEPARATORS " \t\n,"
 
-struct pcb {
+struct pcb
+{
     pid_t pid;             // system process ID
-    char * args[MAX_ARGS];  // program name and args
+    char *args[MAX_ARGS];   // program name and args
     int arrivaltime;
     int remainingcputime;
     int priority;
-    struct pcb * next;     // links for Pcb handlers
+    int memoryrequired;
+
+    struct pcb *next;      // links for Pcb handlers
 };
 typedef struct pcb Pcb;
-typedef Pcb * PcbPtr;
+typedef Pcb *PcbPtr;
 
-struct queue {
-    char * name[MAX_BUFFER];
-   	PcbPtr first;
-	PcbPtr last;
-	int length;
+struct queue
+{
+    char *name[MAX_BUFFER];
+    PcbPtr first;
+    PcbPtr last;
+    int length;
 };
 typedef struct queue Queue;
-typedef Queue * QueuePtr;
+typedef Queue *QueuePtr;
 
 
-struct mab {
+struct mab
+{
     int offset;
     int size;
     int allocated;
-    struct mab * next;
-    struct mab * prev;
+    struct mab *next;
+    struct mab *prev;
 };
 typedef struct mab Mab;
-typedef Mab * MabPtr;
+typedef Mab *MabPtr;
 
 /*
 - queue process (or join queues) at end of queue
-- enqueues at "tail" of queue list. 
+- enqueues at "tail" of queue list.
 returns:
   (new) head of queue
 */
@@ -77,17 +82,24 @@ PcbPtr terminatePcb(PcbPtr process);
 */
 PcbPtr startPcb(PcbPtr process);
 
-
+//create an empty queue object in memory
 QueuePtr createQueue(void);
+
+//get computed priority of a PCB
 int get_priority(int x);
-int highest_priority_process(QueuePtr * x);
-int process_in_queues(QueuePtr * x);
+
+//find the queue which holds the process of highest priority
+int highest_priority_process(QueuePtr *x);
+
+//check if there are any processes in an array of queues
+int process_in_queues(QueuePtr *x);
 
 
 MabPtr memChk(MabPtr m, int size);   // check if memory available
 MabPtr memAlloc(MabPtr m, int size); // allocate memory block
 MabPtr memFree(MabPtr m);            // free memory block
- 
+
 MabPtr memMerge(MabPtr m);           // merge two memory blocks
 MabPtr memSplit(MabPtr m, int size); // split a memory block
+MabPtr createnullMab(void);
 

@@ -8,26 +8,27 @@
 
 #include "main.h"
 
+// the number of round robin queues
+// theoretically by changing this number we can have unlimited priority queues
 #define NUM_RR 3
 
-int main()
+int main(int argc, char *argv[])
 {
     // 1. Initialize dispatcher queue;
     QueuePtr dispatch = createQueue();
+    QueuePtr userjobs = createQueue();
+    QueuePtr realtime = createQueue();
 
     QueuePtr rr[NUM_RR];
-
     for (int i = 0; i < NUM_RR; i++)
         rr[i] = createQueue();
 
-
     int dispatch_timer = 0;
-    
+
     // 2. Fill dispatcher queue from dispatch list file;
     char buf[MAX_BUFFER];
-
     // FILE *file = fopen (argv[1], "r");
-    FILE *file = fopen ("fcfs.txt", "r");
+    FILE *file = fopen (argv[1], "r");
 
     // set up variables for arguments
     char *args[MAX_ARGS];
@@ -47,7 +48,6 @@ int main()
             //create the new pcb in memory
             PcbPtr new_pcb = createnullPcb();
 
-            // exit(1);
             //set pcb variables from file arguments
             new_pcb->arrivaltime = atoi(args[0]);
             new_pcb->remainingcputime = atoi(args[2]);
@@ -57,44 +57,62 @@ int main()
             new_pcb->pid = 0;
             new_pcb->priority = atoi(args[1]);
 
-
-
             printf("Created: %d %d\n", new_pcb->arrivaltime, new_pcb->priority);
+
+            //add to the dispatch queue
             enqPcb(dispatch, new_pcb);
         }
     }
 
+    // set pointer to be used for the current process
     PcbPtr current_process = NULL;
 
+    //begin while loop logic
     while (1)
-    {   
+    {
+
+        //just for printing
         if (current_process != NULL)
         {
             printf("%d [%d]: %d (%d)\n", current_process->arrivaltime, current_process->pid, current_process->remainingcputime, current_process->priority);
         }
+        else
+        {
+            printf("idle \n");
+        }
 
-        if (current_process == NULL && dispatch->first == NULL && rr[0]->first == NULL)
+        // reached the "base case" where all the queues are empty, all the process have been run
+        if (current_process == NULL && dispatch->first == NULL && realtime->first == NULL && rr[0]->first == NULL)
         {
             exit(0);
         }
 
-        if (dispatch->first != NULL && dispatch->first->arrivaltime <= dispatch_timer)
+        // check that any job has reached arival time and place it in appropriate queue
+        while (dispatch->first != NULL && dispatch->first->arrivaltime <= dispatch_timer)
         {
             PcbPtr foo = deqPcb(dispatch);
-            enqPcb(rr[get_priority(foo->priority)], foo);
+            if (get_priority(foo->priority) >= 0)
+                enqPcb(rr[get_priority(foo->priority)], foo);
+            else if (get_priority(foo->priority) == -1)
+                enqPcb(realtime, foo);
         }
 
+        // when we have a currently running process, reduce cpu time and choose what to do with it
         if (current_process != NULL)
         {
             current_process->remainingcputime --;
+
+            //process finished, terminate it
             if (current_process->remainingcputime <= 0)
             {
                 terminatePcb(current_process);
                 current_process = NULL;
                 free(current_process);
             }
-            else if (process_in_queues(rr) == 1) {
-                if (current_process->priority > 1)
+            // low priority processes get re enqued on the round robin stack
+            else if (get_priority(current_process->priority) >= 0 && process_in_queues(rr) == 1)
+            {
+                if (get_priority(current_process->priority) > 0)
                     current_process->priority--;
 
                 kill(current_process->pid, SIGTSTP);
@@ -102,19 +120,32 @@ int main()
                 current_process = NULL;
             }
         }
+
+        // if a realtime process is available
+        if (current_process == NULL && realtime->first != NULL)
+        {
+            current_process = deqPcb(realtime);
+            startPcb(current_process);
+        }
+
+        //if there is any processes waiting in the rr queues
         if (current_process == NULL && process_in_queues(rr))
         {
+            //get the highest priority process out of the stack
             current_process = deqPcb(rr[highest_priority_process(rr)]);
 
+            //either resume or start the process
             if (current_process->pid != 0)
             {
                 kill(current_process->pid, SIGCONT);
-            } 
+            }
             else
             {
                 startPcb(current_process);
             }
         }
+
+        //sleep for 1 second and increment the timer
         sleep(1);
         dispatch_timer++;
 
@@ -125,10 +156,11 @@ int main()
 
 int get_priority(int x)
 {
-    return (NUM_RR - x);
+    // return (NUM_RR - x);
+    return x - 1;
 }
 
-int process_in_queues(QueuePtr * x)
+int process_in_queues(QueuePtr *x)
 {
     for (int i = 0; i < NUM_RR; i++)
     {
@@ -140,7 +172,7 @@ int process_in_queues(QueuePtr * x)
     return 0;
 }
 
-int highest_priority_process(QueuePtr * x)
+int highest_priority_process(QueuePtr *x)
 {
     for (int i = 0; i < NUM_RR; i++)
     {
@@ -170,9 +202,9 @@ PcbPtr startPcb(PcbPtr process)
 
 PcbPtr terminatePcb(PcbPtr process)
 {
+    printf("Terminating: %d [%d]\n", process->arrivaltime, process->pid);
     if (kill(process->pid, SIGINT))
     {
-        printf("Terminated: %d [%d]\n", process->arrivaltime, process->pid);
         return NULL;
     }
     return process;
@@ -182,6 +214,11 @@ PcbPtr terminatePcb(PcbPtr process)
 PcbPtr createnullPcb(void)
 {
     return (PcbPtr) malloc(sizeof(Pcb));
+}
+
+MabPtr createnullMab(void)
+{
+    return (MabPtr) malloc(sizeof(Mab));
 }
 
 PcbPtr enqPcb (QueuePtr queue, PcbPtr process)
@@ -219,6 +256,7 @@ QueuePtr createQueue(void)
     return (QueuePtr) malloc(sizeof(Queue));
 }
 
+
 MabPtr memChk(MabPtr m, int size)
 {
 
@@ -233,7 +271,7 @@ MabPtr memFree(MabPtr m)
 {
 
 }
- 
+
 MabPtr memMerge(MabPtr m)
 {
 
