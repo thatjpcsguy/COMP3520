@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < NUM_RR; i++)
         rr[i] = createQueue();
 
-    int dispatch_timer = 0;
+    int dispatch_timer = 1;
 
     // 2. Fill dispatcher queue from dispatch list file;
     char buf[MAX_BUFFER];
@@ -216,10 +216,6 @@ PcbPtr createnullPcb(void)
     return (PcbPtr) malloc(sizeof(Pcb));
 }
 
-MabPtr createnullMab(void)
-{
-    return (MabPtr) malloc(sizeof(Mab));
-}
 
 PcbPtr enqPcb (QueuePtr queue, PcbPtr process)
 {
@@ -256,6 +252,11 @@ QueuePtr createQueue(void)
     return (QueuePtr) malloc(sizeof(Queue));
 }
 
+
+MabPtr createnullMab(void)
+{
+    return (MabPtr) malloc(sizeof(Mab));
+}
 
 MabPtr memChk(MabPtr m, int size)
 {
